@@ -238,7 +238,16 @@
     });
 
     showBtn.addEventListener('click', () => {
-      renderEntries();
+  if (entriesDiv.style.display === 'none' || entriesDiv.style.display === '') {
+    // Show + render
+    renderEntries();
+    entriesDiv.style.display = 'block';
+    showBtn.textContent = 'Hide Applications';
+  } else {
+    // Hide
+    entriesDiv.style.display = 'none';
+    showBtn.textContent = 'Show All Applications';
+  }
     });
   </script>
 </body>
