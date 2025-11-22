@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Job Application Tracker</title>
+  <style>
+    body {
+      background: #fff;
+      color: #000;
+      font-family: monospace;
+      margin: 40px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .tracker {
+      border: 3px solid #000;
+      padding: 20px;
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      border-bottom: 3px solid #000;
+      padding-bottom: 10px;
+    }
+
+    input, button {
+      display: block;
+      margin: 10px auto;
+      padding: 10px;
+      border: 3px solid #000;
+      background: #fff;
+      color: #000;
+      font-weight: bold;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.1s ease, background 0.1s ease;
+      width: 80%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      outline: none;
+      background: #eee;
+    }
+
+    button:active {
+      transform: translateY(2px);
+      background: #000;
+      color: #fff;
+    }
+
+    .entries {
+      margin-top: 20px;
+      border-top: 3px solid #000;
+      padding-top: 10px;
+      text-align: left;
+    }
+
+    .entry {
+      border-bottom: 2px solid #000;
+      padding: 10px 0;
+    }
+
+    .entry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .delete-btn {
+      background: #000;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.1s ease, background 0.1s ease;
+    }
+
+    .delete-btn:active {
+      transform: translateY(2px);
+      background: #fff;
+      color: #000;
+      border: 2px solid #000;
+    }
+
+    .sr-only {
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+
+    .toggle-section {
+      margin-top: 8px;
+    }
+
+    .toggle-btn {
+      display: inline-block;
+      margin-right: 10px;
+      padding: 5px 10px;
+      border: 2px solid #000;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .toggle-btn:active {
+      background: #000;
+      color: #fff;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .status-date {
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="tracker">
+    <h1>Job Application Tracker</h1>
+
+    <label for="jobInput" class="sr-only">Enter job title or company</label>
+    <input type="text" id="jobInput" placeholder="Job Title / Company" aria-label="Job Title or Company">
+
+    <label for="dateInput" class="sr-only">Enter application date</label>
+    <input type="date" id="dateInput" aria-label="Application Date">
+
+    <button id="addBtn" aria-label="Add Application">Add Application</button>
+    <button id="showBtn" aria-label="Show All Applications">Show All Applications</button>
+
+    <div class="entries" id="entries" aria-live="polite"></div>
+  </div>
+
+  <script>
+    const jobInput = document.getElementById('jobInput');
+    const dateInput = document.getElementById('dateInput');
+    const addBtn = document.getElementById('addBtn');
+    const showBtn = document.getElementById('showBtn');
+    const entriesDiv = document.getElementById('entries');
+
+    let applications = JSON.parse(localStorage.getItem('applications')) || [];
+
+    function saveApplications() {
+      localStorage.setItem('applications', JSON.stringify(applications));
+    }
+
+    function renderEntries() {
+      entriesDiv.innerHTML = '';
+      applications.forEach((app, index) => {
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'entry';
+
+        entryDiv.innerHTML = `
+          <div class="entry-header">
+            <span><strong>${app.job}</strong> — Applied: ${app.date}</span>
+            <button class="delete-btn" data-index="${index}" aria-label="Delete application ${app.job}">X</button>
+          </div>
+          <div class="toggle-section">
+            <button class="toggle-btn" id="interview-toggle-${index}" aria-label="Toggle interview date">Interview</button>
+            <button class="toggle-btn" id="rejection-toggle-${index}" aria-label="Toggle rejection date">Rejection</button>
+            <div id="interview-section-${index}" class="hidden status-date">
+              <label class="sr-only" for="interview-${index}">Interview date for ${app.job}</label>
+              <input type="date" id="interview-${index}" value="${app.interviewDate || ''}" aria-label="Interview Date">
+            </div>
+            <div id="rejection-section-${index}" class="hidden status-date">
+              <label class="sr-only" for="rejection-${index}">Rejection date for ${app.job}</label>
+              <input type="date" id="rejection-${index}" value="${app.rejectionDate || ''}" aria-label="Rejection Date">
+            </div>
+          </div>
+        `;
+
+        entriesDiv.appendChild(entryDiv);
+
+        // Delete handler
+        entryDiv.querySelector('.delete-btn').addEventListener('click', () => {
+          applications.splice(index, 1);
+          saveApplications();
+          renderEntries();
+        });
+
+        // Toggle handlers
+        entryDiv.querySelector(`#interview-toggle-${index}`).addEventListener('click', () => {
+          const section = entryDiv.querySelector(`#interview-section-${index}`);
+          section.classList.toggle('hidden');
+        });
+
+        entryDiv.querySelector(`#rejection-toggle-${index}`).addEventListener('click', () => {
+          const section = entryDiv.querySelector(`#rejection-section-${index}`);
+          section.classList.toggle('hidden');
+        });
+
+        // Date change handlers
+        entryDiv.querySelector(`#interview-${index}`).addEventListener('change', (e) => {
+          applications[index].interviewDate = e.target.value;
+          saveApplications();
+        });
+
+        entryDiv.querySelector(`#rejection-${index}`).addEventListener('change', (e) => {
+          applications[index].rejectionDate = e.target.value;
+          saveApplications();
+        });
+      });
+    }
+
+    addBtn.addEventListener('click', () => {
+      const job = jobInput.value.trim();
+      const date = dateInput.value;
+      if (job && date) {
+        applications.push({ job, date, interviewDate: '', rejectionDate: '' });
+        saveApplications();
+        jobInput.value = '';
+        dateInput.value = '';
+        // Instead of popup, show inline confirmation
+        renderEntries();
+      } else {
+        // Inline error message
+        const msg = document.createElement('div');
+        msg.style.color = '#000';
+        msg.style.fontSize = '12px';
+        msg.style.marginTop = '5px';
+        msg.textContent = 'Please enter both job and date.';
+        entriesDiv.prepend(msg);
+        setTimeout(() => msg.remove(), 3000);
+      }
+    });
+
+    showBtn.addEventListener('click', () => {
+      renderEntries();
+    });
+  </script>
+</body>
+</html>
